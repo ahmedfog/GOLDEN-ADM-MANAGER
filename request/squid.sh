@@ -1,30 +1,32 @@
+Skip to content
+ 
+Search or jump to…
+
+Pull requests
+Issues
+Marketplace
+Explore
+ 
+@ahmedfog 
+Learn Git and GitHub without any code!
+Using the Hello World guide, you’ll start a branch, write comments, and open a pull request.
+
+ 
+0
+6 20 AAAAAEXQOSyIpN2JZ0ehUQ/ADM-ULTIMATE-NEW-FREE
+ Code  Issues 3  Pull requests 2  Projects 0  Wiki  Security  Insights
+ADM-ULTIMATE-NEW-FREE/request/squid.sh
+@AAAAAEXQOSyIpN2JZ0ehUQ AAAAAEXQOSyIpN2JZ0ehUQ Update Script
+e03af68 on Sep 28
+296 lines (287 sloc)  9.48 KB
+    
 #!/bin/bash
-fun_trans () { 
-local texto
-local retorno
-declare -A texto
-[[ ! -e /etc/texto-adm ]] && touch /etc/texto-adm
-source /etc/texto-adm
-if [[ -z $(echo ${texto[$2]}) ]]; then
-ENGINES=(aspell google deepl bing spell hunspell apertium yandex)
-  while [[ -z $retorno ]]; do
-    NUM="$(($RANDOM%${#ENGINES[@]}))"
-    retorno="$(source trans -e ${ENGINES[$NUM]} -b pt:$1 "$2"|sed -e 's/[^a-z0-9 -]//ig' 2>/dev/null)"
-  done
- echo "texto[$2]='$retorno'"  >> /etc/texto-adm
- echo "$retorno"
-else
- echo "${texto[$2]}"
-fi
-}
-declare -A cor=( [0]="\033[33m" [1]="\033[33m" [2]="\033[33m" [3]="\033[33m" [4]="\033[33m" )
-barra="\e[33m======================================================\033[1;37m"
-[[ -z $1 ]] && exit || id=$1
+declare -A cor=( [0]="\033[1;37m" [1]="\033[1;34m" [2]="\033[1;32m" [3]="\033[1;36m" [4]="\033[1;31m" )
+SCPdir="/etc/newadm" && [[ ! -d ${SCPdir} ]] && exit 1
 SCPfrm="/etc/ger-frm" && [[ ! -d ${SCPfrm} ]] && exit
 SCPinst="/etc/ger-inst" && [[ ! -d ${SCPinst} ]] && exit
-API_TRANS="aHR0cHM6Ly93d3cuZHJvcGJveC5jb20vcy9sNmlxZjV4anRqbXBkeDUvdHJhbnM/ZGw9MA=="
-SUB_DOM='base64 -d'
-wget -O /usr/bin/trans $(echo $API_TRANS|$SUB_DOM) &> /dev/null
+SCPidioma="${SCPdir}/idioma" && [[ ! -e ${SCPidioma} ]] && touch ${SCPidioma}
+#LISTA PORTAS
 mportas () {
 unset portas
 portas_var=$(lsof -V -i tcp -P -n | grep -v "ESTABLISHED" |grep -v "COMMAND" | grep "LISTEN")
@@ -35,101 +37,285 @@ done <<< "$portas_var"
 i=1
 echo -e "$portas"
 }
-fun_ip () {
-MEU_IP=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -o -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
-MEU_IP2=$(wget -qO- ipv4.icanhazip.com)
-[[ "$MEU_IP" != "$MEU_IP2" ]] && IP="$MEU_IP2" || IP="$MEU_IP"
-}
-fun_eth () {
-eth=$(ifconfig | grep -v inet6 | grep -v lo | grep -v 127.0.0.1 | grep "encap:Ethernet" | awk '{print $1}')
-    [[ $eth != "" ]] && {
-    echo -e "$barra"
-    echo -e "${cor[3]} $(fun_trans ${id} "Aplicar Sistema Para Melhorar Pacotes Ssh?")"
-    echo -e "${cor[3]} $(fun_trans ${id} "Opcao Para Usuarios Avancados")"
-    echo -e "$barra"
-    read -p " [S/N]: " -e -i n sshsn
-           [[ "$sshsn" = @(s|S|y|Y) ]] && {
-           echo -e "${cor[1]} $(fun_trans ${id} "Correcao de problemas de pacotes no SSH...")"
-           echo -e " $(fun_trans ${id} "Qual A Taxa RX")"
-           echo -ne "[ 1 - 999999999 ]: "; read rx
-           [[ "$rx" = "" ]] && rx="999999999"
-           echo -e " $(fun_trans ${id} "Qual A Taxa TX")"
-           echo -ne "[ 1 - 999999999 ]: "; read tx
-           [[ "$tx" = "" ]] && tx="999999999"
-           apt-get install ethtool -y > /dev/null 2>&1
-           ethtool -G $eth rx $rx tx $tx > /dev/null 2>&1
-           }
-     echo -e "$barra"
-     }
-}
-fun_bar () {
-comando="$1"
- _=$(
-$comando > /dev/null 2>&1
-) & > /dev/null
-pid=$!
-while [[ -d /proc/$pid ]]; do
-echo -ne " \033[33m["
-   for((i=0; i<10; i++)); do
-   echo -ne "\033[33m##"
-   sleep 0.2
+fun_squid  () {
+  if [[ -e /etc/squid/squid.conf ]]; then
+  var_squid="/etc/squid/squid.conf"
+  elif [[ -e /etc/squid3/squid.conf ]]; then
+  var_squid="/etc/squid3/squid.conf"
+  fi
+  [[ -e $var_squid ]] && {
+  msg -ama " $(fun_trans "REMOVENDO SQUID*")"
+  msg -bar
+  service squid stop > /dev/null 2>&1
+  service squid3 stop > /dev/null 2>&1
+  fun_bar "apt-get remove squid3 -y"
+  msg -bar
+  msg -ama " $(fun_trans "Procedimento Concluido")"
+  msg -bar
+  [[ -e $var_squid ]] && rm $var_squid
+  return 0
+  }
+msg -ama  " $(fun_trans "INSTALADOR SQUID ADM-ULTIMATE")"
+msg -bar
+fun_ip
+msg -ne " $(fun_trans "Confirme seu ip")"; read -p ": " -e -i $IP ip
+msg -bar
+msg -ama " $(fun_trans "Agora Escolha as Portas que Deseja No Squid*")"
+msg -ama " $(fun_trans "Escolha As Portas Em Ordem Sequencial Exemplo: 80 8080 8799 3128")"
+msg -bar
+msg -ne " $(fun_trans "Digite as Portas:") "; read portasx
+totalporta=($portasx)
+tput cuu1 && tput dl1
+unset PORT
+   for portx in $(echo $portasx); do
+        [[ $(mportas|grep "${portx}") = "" ]] && {
+        msg -ama " $(fun_trans "Porta Escolhida:")\033[1;32m ${portx} OK"
+        PORT+="${portx}\n"
+        } || {
+        msg -ama " $(fun_trans "Porta Escolhida:")\033[1;31m ${portx} FAIL"
+        }
    done
-echo -ne "\033[33m]"
-sleep 1s
-echo
-tput cuu1
-tput dl1
+  [[ -z $PORT ]] && {
+  msg -verm " $(fun_trans "Nenhuma Porta Valida Foi Escolhida")\033[0m"
+  msg -bar
+  return 1
+  }
+msg -bar
+msg -ama  " $(fun_trans "INSTALANDO SQUID")"
+msg -bar
+fun_bar "apt-get install squid3 -y"
+msg -bar
+msg -ama  " $(fun_trans "INICIANDO CONFIGURACAO")"
+msg -bar
+echo -e ".bookclaro.com.br/\n.claro.com.ar/\n.claro.com.br/\n.claro.com.co/\n.claro.com.ec/\n.claro.com.gt/\n.cloudfront.net/\n.claro.com.ni/\n.claro.com.pe/\n.claro.com.sv/\n.claro.cr/\n.clarocurtas.com.br/\n.claroideas.com/\n.claroideias.com.br/\n.claromusica.com/\n.clarosomdechamada.com.br/\n.clarovideo.com/\n.facebook.net/\n.facebook.com/\n.netclaro.com.br/\n.oi.com.br/\n.oimusica.com.br/\n.speedtest.net/\n.tim.com.br/\n.timanamaria.com.br/\n.vivo.com.br/\n.rdio.com/\n.compute-1.amazonaws.com/\n.portalrecarga.vivo.com.br/\n.vivo.ddivulga.com/" > /etc/payloads
+msg -ama " $(fun_trans "Agora Escolha Uma Conf Para Seu Proxy")"
+msg -bar
+msg -ama  "|1| $(fun_trans "Comum")"
+msg -ama  "|2| $(fun_trans "Customizado") -\033[1;31m $(fun_trans "Usuario Deve Ajustar")\033[1;37m"
+msg -bar
+read -p "[1/2]: " -e -i 1 proxy_opt
+tput cuu1 && tput dl1
+if [[ $proxy_opt = 1 ]]; then
+msg -ama  " $(fun_trans "INSTALANDO SQUID COMUM")"
+elif [[ $proxy_opt = 2 ]]; then
+msg -ama " $(fun_trans "INSTALANDO SQUID CUSTOMIZADO")"
+else
+msg -ama " $(fun_trans "INSTALANDO SQUID COMUM")"
+proxy_opt=1
+fi
+unset var_squid
+if [[ -d /etc/squid ]]; then
+var_squid="/etc/squid/squid.conf"
+elif [[ -d /etc/squid3 ]]; then
+var_squid="/etc/squid3/squid.conf"
+fi
+if [[ "$proxy_opt" = @(02|2) ]]; then
+echo -e "#ConfiguracaoSquiD
+acl url1 dstdomain -i $ip
+acl url2 dstdomain -i 127.0.0.1
+acl url3 url_regex -i '/etc/payloads'
+acl url4 url_regex -i '/etc/opendns'
+acl url5 dstdomain -i localhost
+acl accept dstdomain -i GET
+acl accept dstdomain -i POST
+acl accept dstdomain -i OPTIONS
+acl accept dstdomain -i CONNECT
+acl accept dstdomain -i PUT
+acl HEAD dstdomain -i HEAD
+acl accept dstdomain -i TRACE
+acl accept dstdomain -i OPTIONS
+acl accept dstdomain -i PATCH
+acl accept dstdomain -i PROPATCH
+acl accept dstdomain -i DELETE
+acl accept dstdomain -i REQUEST
+acl accept dstdomain -i METHOD
+acl accept dstdomain -i NETDATA
+acl accept dstdomain -i MOVE
+acl all src 0.0.0.0/0
+http_access allow url1
+http_access allow url2
+http_access allow url3
+http_access allow url4
+http_access allow url5
+http_access allow accept
+http_access allow HEAD
+http_access deny all
+# Request Headers Forcing
+request_header_access Allow allow all
+request_header_access Authorization allow all
+request_header_access WWW-Authenticate allow all
+request_header_access Proxy-Authorization allow all
+request_header_access Proxy-Authenticate allow all
+request_header_access Cache-Control allow all
+request_header_access Content-Encoding allow all
+request_header_access Content-Length allow all
+request_header_access Content-Type allow all
+request_header_access Date allow all
+request_header_access Expires allow all
+request_header_access Host allow all
+request_header_access If-Modified-Since allow all
+request_header_access Last-Modified allow all
+request_header_access Location allow all
+request_header_access Pragma allow all
+request_header_access Accept allow all
+request_header_access Accept-Charset allow all
+request_header_access Accept-Encoding allow all
+request_header_access Accept-Language allow all
+request_header_access Content-Language allow all
+request_header_access Mime-Version allow all
+request_header_access Retry-After allow all
+request_header_access Title allow all
+request_header_access Connection allow all
+request_header_access Proxy-Connection allow all
+request_header_access User-Agent allow all
+request_header_access Cookie allow all
+#request_header_access All deny all
+# Response Headers Spoofing
+#reply_header_access Via deny all
+#reply_header_access X-Cache deny all
+#reply_header_access X-Cache-Lookup deny all
+#portas" > $var_squid
+for pts in $(echo -e $PORT); do
+echo -e "http_port $pts" >> $var_squid
 done
-echo -e " \033[1;33m[\033[33m####################\033[1;33m] - \033[1;32m100%\033[0m"
-sleep 1s
+echo -e "
+#nome
+visible_hostname ADM-MANAGER
+via off
+forwarded_for off
+pipeline_prefetch off" >> $var_squid
+ else
+echo -e "#ConfiguracaoSquiD
+acl url1 dstdomain -i $ip
+acl url2 dstdomain -i 127.0.0.1
+acl url3 url_regex -i '/etc/payloads'
+acl url4 url_regex -i '/etc/opendns'
+acl url5 dstdomain -i localhost
+acl all src 0.0.0.0/0
+http_access allow url1
+http_access allow url2
+http_access allow url3
+http_access allow url4
+http_access allow url5
+http_access deny all
+#portas" > $var_squid
+for pts in $(echo -e $PORT); do
+echo -e "http_port $pts" >> $var_squid
+done
+echo -e "
+#nome
+visible_hostname ADM-MANAGER
+via off
+forwarded_for off
+pipeline_prefetch off" >> $var_squid
+fi
+touch /etc/opendns
+fun_eth
+msg -ne "\033[1;31m [ ! ] \033[1;33m$(fun_trans "REINICIANDO SERVICOS*")"
+squid3 -k reconfigure > /dev/null 2>&1
+service ssh restart > /dev/null 2>&1
+service squid3 restart > /dev/null 2>&1
+service squid restart > /dev/null 2>&1
+echo -e " \033[1;32m[OK]"
+msg -bar && msg -ama " $(fun_trans "SQUID CONFIGURADO*")" && msg -bar
+#UFW
+for ufww in $(mportas|awk '{print $2}'); do
+ufw allow $ufww > /dev/null 2>&1
+done
 }
-ssl_stunel () {
-[[ $(mportas|grep stunnel4|head -1) ]] && {
-echo -e "\033[1;33m $(fun_trans ${id} "Parando Stunnel")"
-echo -e "$barra"
-fun_bar "apt-get purge stunnel4 -y"
-echo -e "$barra"
-echo -e "\033[1;33m $(fun_trans ${id} "Parado Com Sucesso!")"
-echo -e "$barra"
+online_squid () {
+payload="/etc/payloads"
+msg -azu " $(fun_trans "CONFIGURAÇÃO DE SQUID*")"
+msg -bar
+echo -ne "\033[1;32m [1] > " && msg -azu "$(fun_trans "Lugar um Host no Squid")"
+echo -ne "\033[1;32m [2] > " && msg -azu "$(fun_trans "Remover Host do Squid")"
+echo -ne "\033[1;32m [3] > " && msg -azu "$(fun_trans "Desinstalar o Squid")"
+echo -ne "\033[1;32m [0] > " && msg -bra "$(fun_trans "Voltar")"
+msg -bar
+while [[ $varpay != @(0|[1-3]) ]]; do
+read -p "[0/3]: " varpay
+tput cuu1 && tput dl1
+done
+if [[ "$varpay" = "0" ]]; then
+return 1
+elif [[ "$varpay" = "1" ]]; then
+msg -ama " $(fun_trans "Hos_ts Atuais Dentro do Squid")"
+msg -bar
+cat $payload | awk -F "/" '{print $1,$2,$3,$4}'
+msg -bar
+while [[ $hos != \.* ]]; do
+msg -ne " $(fun_trans "Digite a Nova Host"): " && read hos
+tput cuu1 && tput dl1
+[[ $hos = \.* ]] && continue
+msg -ama " $(fun_trans "Comece com") .${cor[0]}"
+sleep 2s
+tput cuu1 && tput dl1
+done
+host="$hos/"
+[[ -z $host ]] && return 1
+[[ `grep -c "^$host" $payload` -eq 1 ]] && msg -ama "${cor[4]}$(fun_trans "Ho_st Ja Existe")${cor[0]}" && msg -bar && return 1
+echo "$host" >> $payload && grep -v "^$" $payload > /tmp/a && mv /tmp/a $payload
+msg -ama "$(fun_trans "Ho_st Adicionada Com Sucesso")"
+msg -bar
+cat $payload | awk -F "/" '{print $1,$2,$3,$4}'
+msg -bar
+if [[ ! -f "/etc/init.d/squid" ]]; then
+service squid3 reload > /dev/null 2>&1
+service squid3 restart > /dev/null 2>&1
+else
+/etc/init.d/squid reload > /dev/null 2>&1
+service squid restart > /dev/null 2>&1
+fi	
 return 0
-}
-echo -e "\033[33m $(fun_trans ${id} "SSL GOLDEN ADM PRO")"
-echo -e "$barra"
-echo -e "\033[1;33m $(fun_trans ${id} "Selecione Uma Porta De Redirecionamento Interna")"
-echo -e "\033[1;33m $(fun_trans ${id} "Ou seja, uma Porta no Seu Servidor Para o SSL")"
-echo -e "$barra"
-         while true; do
-         echo -ne "\033[1;37m"
-         read -p " Local-Port: " portx
-         if [[ ! -z $portx ]]; then
-             if [[ $(echo $portx|grep [0-9]) ]]; then
-                [[ $(mportas|grep $portx|head -1) ]] && break || echo -e "\033[1;31m $(fun_trans ${id} "Porta Invalida")"
-             fi
-         fi
-         done
-echo -e "$barra"
-DPORT="$(mportas|grep $portx|awk '{print $2}'|head -1)"
-echo -e "\033[1;33m $(fun_trans ${id} "Agora Presizamos Saber Qual Porta o SSL, Vai Escutar")"
-echo -e "$barra"
-    while true; do
-    read -p " Listen-SSL: " SSLPORT
-    [[ $(mportas|grep -w "$SSLPORT") ]] || break
-    echo -e "\033[1;33m $(fun_trans ${id} "esta Porta Ja esta em Uso")"
-    unset SSLPORT
-    done
-echo -e "$barra"
-echo -e "\033[33m $(fun_trans ${id} "Instalando SSL")"
-echo -e "$barra"
-fun_bar "apt-get install stunnel4 -y"
-echo -e "cert = /etc/stunnel/stunnel.pem\nclient = no\nsocket = a:SO_REUSEADDR=1\nsocket = l:TCP_NODELAY=1\nsocket = r:TCP_NODELAY=1\n\n[stunnel]\nconnect = 127.0.0.1:${DPORT}\naccept = ${SSLPORT}" > /etc/stunnel/stunnel.conf
-openssl genrsa -out key.pem 2048 > /dev/null 2>&1
-(echo DS; echo @DEADSSHOT593; echo VENTA DE VPS DE PAGA; echo WHATSAPP +593996534252; echo TELEGRAM @DEADSHOT593; echo @DEADSHOT593; echo @aDEADSHOT593)|openssl req -new -x509 -key key.pem -out cert.pem -days 1095 > /dev/null 2>&1
-cat key.pem cert.pem >> /etc/stunnel/stunnel.pem
-sed -i 's/ENABLED=0/ENABLED=1/g' /etc/default/stunnel4
-service stunnel4 restart > /dev/null 2>&1
-echo -e "$barra"
-echo -e "\033[1;33m $(fun_trans ${id} "INSTALADO COM SUCESSO")"
-echo -e "$barra"
+elif [[ "$varpay" = "2" ]]; then
+echo -e "${cor[4]} $(fun_trans "Hos_ts Atuais Dentro do Squ_id")"
+msg -bar 
+cat $payload | awk -F "/" '{print $1,$2,$3,$4}'
+msg -bar
+while [[ $hos != \.* ]]; do
+echo -ne "${cor[4]}$(fun_trans "Digite a Host"): " && read hos
+tput cuu1 && tput dl1
+[[ $hos = \.* ]] && continue
+msg -ama " $(fun_trans "Comece com") .${cor[0]}"
+sleep 2s
+tput cuu1 && tput dl1
+done
+host="$hos/"
+[[ -z $host ]] && return 1
+[[ `grep -c "^$host" $payload` -ne 1 ]] && msg -ama "$(fun_trans "Ho_st Nao Encontrada")" && msg -bar && return 1
+grep -v "^$host" $payload > /tmp/a && mv /tmp/a $payload
+msg -ama " $(fun_trans "Ho_st Removida Com Sucesso")"
+msg -bar
+cat $payload | awk -F "/" '{print $1,$2,$3,$4}'
+msg -bar
+if [[ ! -f "/etc/init.d/squid" ]]; then
+service squid3 reload > /dev/null 2>&1
+service squid3 restart > /dev/null 2>&1
+else
+/etc/init.d/squid reload > /dev/null 2>&1
+service squid restart > /dev/null 2>&1
+fi	
 return 0
+elif [[ "$varpay" = "3" ]]; then
+fun_squid
+fi
 }
-ssl_stunel
+if [[ -e /etc/squid/squid.conf ]]; then
+online_squid
+elif [[ -e /etc/squid3/squid.conf ]]; then
+online_squid
+else
+fun_squid
+fi 
+© 2019 GitHub, Inc.
+Terms
+Privacy
+Security
+Status
+Help
+Contact GitHub
+Pricing
+API
+Training
+Blog
+About
